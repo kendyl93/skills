@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flow walkthrough</title>
+<style>
+ :root{--bg:#fff;--fg:#14171a;--mut:#5d6b7a;--line:#e3e8ef;--card:#f7f9fb;--accent:#c2410c;--off:#eef1f4;
+   --bad:#b91c1c;--bad-bg:#fde8e8;--ok:#047857;--ok-bg:#dff5ea;
+   --l0:#b45309;--l0-bg:#fff1dc;--l1:#1d4ed8;--l1-bg:#e6edff;--l2:#047857;--l2-bg:#dff5ea;--l3:#7e22ce;--l3-bg:#f3e8ff;--l4:#be185d;--l4-bg:#fce7f3}
+ @media (prefers-color-scheme:dark){:root{--bg:#0f1418;--fg:#eef2f6;--mut:#9aa8b6;--line:#243039;--card:#161d23;--accent:#fb923c;--off:#1b232b;
+   --bad:#fca5a5;--bad-bg:#3b1414;--ok:#6ee7b7;--ok-bg:#0f2b22;
+   --l0:#fbbf24;--l0-bg:#3a2a0c;--l1:#93c5fd;--l1-bg:#152238;--l2:#6ee7b7;--l2-bg:#0f2b22;--l3:#d8b4fe;--l3-bg:#2a1540;--l4:#f9a8d4;--l4-bg:#3f1226}}
+ *{box-sizing:border-box}
+ body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif}
+ code,pre,.mono{font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+ pre{white-space:pre-wrap;margin:4px 0 0;background:var(--off);padding:8px 10px;border-radius:7px}
+ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+ small{color:var(--mut)}
+ .wrap{max-width:1380px;margin:0 auto;padding:28px 32px 90px}
+ h1{font-size:28px;margin:0 0 4px}
+ .lede{margin:0 0 18px;color:var(--mut);font-size:16px;max-width:90ch}
+
+ .bar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:0 0 14px}
+ .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
+ .seg button{padding:8px 16px;font-weight:700;color:var(--mut)}
+ .seg button.on{background:var(--fg);color:var(--bg)}
+ .seg button.on.alt{background:var(--ok)}
+ .hint{color:var(--mut);font-size:13px}
+ .hint kbd{border:1px solid var(--line);border-radius:5px;padding:0 6px;font-family:inherit;background:var(--card)}
+
+ .tabs{display:grid;gap:10px;margin:0 0 16px}
+ .tab{border:1px solid var(--line);border-radius:12px;padding:10px 12px;text-align:left;background:var(--bg);display:flex;flex-direction:column;gap:6px;min-width:0;transition:transform .15s,border-color .15s}
+ .tab:hover{transform:translateY(-1px)}
+ .tab.on{border-color:var(--fg);box-shadow:0 0 0 2px var(--fg) inset}
+ .tab .t{font-weight:700;font-size:14px;line-height:1.3}
+ .tab .e{color:var(--mut);font-size:12px}
+ .tab .cmp{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;margin-top:2px}
+ .tab .arr{color:var(--mut)}
+ .pillc{border-radius:999px;padding:1px 8px;font-weight:600;font-size:12px;background:var(--off);color:var(--mut);white-space:nowrap}
+ .pillc.on{background:var(--fg);color:var(--bg);font-weight:700}
+ .pillc.bad{background:var(--bad-bg);color:var(--bad)}
+ .pillc.dim{opacity:.6}
+
+ .player{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+ .panel{border:1px solid var(--line);border-radius:14px;background:var(--card);overflow:hidden}
+ .panel>header{display:flex;align-items:center;gap:4px 10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--bg)}
+ .panel>header h2{margin:0;font-size:15px;flex:1}
+ .steps{display:flex;gap:6px;padding:12px 14px 0;flex-wrap:wrap}
+ .stepbtn{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:5px 12px 5px 6px;background:var(--bg);font-size:13px;color:var(--mut)}
+ .stepbtn .d{width:20px;height:20px;border-radius:50%;background:var(--off);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--mut)}
+ .stepbtn.done .d{background:var(--fg);color:var(--bg)}
+ .stepbtn.on{border-color:var(--fg);color:var(--fg);font-weight:700}
+ .stepbtn.on .d{background:var(--accent);color:#fff}
+ .screen{padding:14px}
+ .screen .cap{display:flex;align-items:baseline;gap:10px;margin:0 0 10px;flex-wrap:wrap}
+ .screen .cap h3{margin:0;font-size:18px}
+ .screen .cap .ui{color:var(--mut);font-size:13px}
+ .fork{display:flex;align-items:center;gap:6px;margin:0 0 10px;font-size:13px;color:var(--mut);flex-wrap:wrap}
+ .fork button{border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-weight:700;color:var(--mut);background:var(--bg)}
+ .fork button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+ .note{border-left:4px solid var(--bad);background:var(--bad-bg);color:var(--bad);padding:8px 12px;border-radius:0 8px 8px 0;font-size:13px;font-weight:600;margin:0 0 10px}
+ .empty{padding:40px 14px;text-align:center;color:var(--mut)}
+ .nav{display:flex;justify-content:space-between;align-items:center;padding:0 14px 14px}
+ .nav button{border:1px solid var(--line);border-radius:9px;padding:8px 14px;font-weight:700;background:var(--bg)}
+ .nav button.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+ .nav button:disabled{opacity:.4;cursor:default}
+
+ .mock{border:1px solid var(--line);border-radius:12px;background:var(--off);min-height:330px;position:relative;padding:14px;overflow:hidden}
+ .host{position:absolute;inset:0;padding:14px;transition:opacity .2s}
+ .host.dim{opacity:.4;filter:saturate(.3)}
+ .hostbar{height:34px;border-radius:8px;background:var(--bg);border:1px solid var(--line);display:flex;align-items:center;padding:0 10px;gap:8px;font-size:12px;color:var(--mut)}
+ .hostbar b{color:var(--fg)}
+ .hostbody{margin-top:10px;background:var(--bg);border:1px solid var(--line);border-radius:8px;min-height:240px;padding:10px;font-size:12px;color:var(--mut)}
+ .modal,.card{position:relative;z-index:2;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:16px 18px;animation:pop .25s ease-out}
+ .modal{margin:30px auto 0;max-width:520px;box-shadow:0 18px 40px rgba(0,0,0,.18)}
+ .modal h4,.card h4{margin:0 0 10px;font-size:16px}
+ .toast{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;z-index:2;animation:pop .3s;white-space:nowrap}
+ @keyframes pop{from{transform:translateY(8px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+ .ln-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;background:var(--off);margin:5px 0;font-size:12px;color:var(--fg)}
+ .modal .ln-row,.card .ln-row{background:var(--card)}
+ .ln-row i{width:12px;height:12px;border:1.5px solid var(--mut);border-radius:3px;flex:none;display:inline-block}
+ .ln-row i.ck{background:var(--accent);border-color:var(--accent)}
+ .ln-row i.rd{border-radius:50%}
+ .ln-row i.rd.ck{box-shadow:inset 0 0 0 2px var(--bg)}
+ .ln-row.sel{outline:1.5px solid var(--accent)}
+ .ln-row.dis{opacity:.5}
+ .ln-h{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:10px 0 4px;font-weight:700}
+ .ln-in{border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:13px;background:var(--bg);margin:5px 0;color:var(--fg)}
+ .ln-mut{color:var(--mut);font-size:12px;margin:5px 0}
+ .ln-bad{border-left:3px solid var(--bad);background:var(--bad-bg);color:var(--bad);padding:5px 8px;border-radius:0 6px 6px 0;font-size:12px;margin:5px 0}
+ .ln-hr{border-top:1px solid var(--line);margin:8px 0}
+ .btn{display:inline-flex;align-items:center;gap:6px;border-radius:7px;padding:5px 10px;font-weight:700;font-size:12px;background:var(--accent);color:#fff;margin:5px 0}
+ .pulse{animation:pulse 1.6s infinite}
+ @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(194,65,12,.6)}70%{box-shadow:0 0 0 12px rgba(194,65,12,0)}100%{box-shadow:0 0 0 0 rgba(194,65,12,0)}}
+ .mfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+
+ .net{position:relative;padding:14px;min-height:300px}
+ .net svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+ .wire{animation:wire .45s ease-out both}
+ @keyframes wire{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+ .netgrid{display:grid;grid-template-columns:120px 1fr;gap:56px;position:relative;z-index:1;padding-right:44px}
+ .client{align-self:center;border:2px solid var(--fg);border-radius:12px;background:var(--bg);padding:12px 10px;text-align:center;font-weight:800}
+ .client small{display:block;font-weight:500;font-size:12px}
+ .lanes{display:flex;flex-direction:column;gap:10px;min-width:0}
+ .lane{border:1.5px solid var(--c);border-radius:12px;padding:8px 10px;background:var(--bg);min-height:60px;transition:opacity .2s,border-color .2s;min-width:0}
+ .lane .ln{font-size:12px;font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:6px;color:var(--c)}
+ .lane .ln small{font-weight:500}
+ .lane .ln .cnt{margin-left:auto;font-weight:600;color:var(--mut);font-size:11px}
+ .lane.idle{opacity:.45;border-color:var(--line)}
+ .lane.idle .ln{color:var(--mut)}
+ .dot{width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--c);flex:none}
+ .req{display:flex;align-items:center;gap:8px;border:1.5px solid var(--c);color:var(--c);border-radius:8px;padding:5px 8px;margin:4px 0;background:var(--bg);font:12px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;animation:slide .35s ease-out both;cursor:pointer;text-align:left;width:100%;flex-wrap:wrap}
+ .req:hover{filter:brightness(.95)}
+ @keyframes slide{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+ .req .m{font-weight:800;font-size:10px;padding:1px 5px;border-radius:4px;background:var(--off)}
+ .req .p{word-break:break-all}
+ .req.write{border-style:dashed}
+ .req.warn{color:var(--bad);border:2px dashed var(--bad);background:var(--bad-bg);font-weight:700}
+ .req .from{margin-left:auto;color:var(--mut);font-family:ui-sans-serif,system-ui,sans-serif;font-size:11px;white-space:nowrap}
+ .tally{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 14px 14px}
+ .tl{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg)}
+ .tl b{display:block;font-size:24px;line-height:1.1}
+ .tl span{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+ .tl.bad b{color:var(--bad)}
+ .log{border-top:1px solid var(--line);padding:10px 14px 14px;font-size:12px}
+ .log h4{margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}
+ .log .l{display:flex;gap:8px;align-items:center;padding:2px 0;color:var(--mut)}
+ .log .l.cur{color:var(--fg);font-weight:700}
+ .log .l .m{font:11px ui-monospace,Menlo,monospace;word-break:break-all}
+
+ .drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,95vw);background:var(--bg);border-left:1px solid var(--line);box-shadow:-20px 0 50px rgba(0,0,0,.18);transform:translateX(105%);transition:transform .25s;z-index:50;display:flex;flex-direction:column}
+ .drawer.open{transform:none}
+ .drawer header{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start}
+ .drawer header .m{font-weight:800;font-size:11px;padding:2px 6px;border-radius:4px;background:var(--off);margin-top:3px}
+ .drawer header h3{margin:0;font:700 14px/1.4 ui-monospace,Menlo,monospace;flex:1;word-break:break-all}
+ .drawer header button{font-size:20px;color:var(--mut)}
+ .drawer .body{padding:14px 18px;overflow:auto;flex:1}
+ .whybox{border-left:4px solid var(--accent);background:var(--card);padding:10px 12px;border-radius:0 8px 8px 0;margin-bottom:14px;font-size:14px}
+ .whybox.warn{border-color:var(--bad)}
+ .grp{margin:14px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+ .grp .st{font-weight:600;text-transform:none;letter-spacing:0;font-size:12px;color:var(--mut)}
+ .grp.absent{opacity:.5}
+ .fld{display:grid;grid-template-columns:200px 1fr;gap:10px;padding:7px 8px;border-radius:8px;font-size:13px}
+ .fld:hover{background:var(--card)}
+ .fld .k{font:700 12px ui-monospace,Menlo,monospace;word-break:break-all}
+ .fld .k small{display:block;font-weight:500;font-family:inherit}
+ .fld.absent{opacity:.45}
+ .reqbox{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:14px;background:var(--card)}
+ .reqbox .grp:first-child{margin-top:0}
+ .url{font:700 13px ui-monospace,Menlo,monospace;margin:4px 0 8px;word-break:break-all}
+ table.pt{border-collapse:collapse;width:100%}
+ table.pt th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);text-align:left;padding:2px 6px}
+ table.pt td{font-size:12px;padding:3px 6px;border-top:1px solid var(--line);vertical-align:top}
+ table.pt td.k{font:700 12px ui-monospace,Menlo,monospace;white-space:nowrap}
+ .hdr,.src{font-size:11px;color:var(--mut);margin-top:8px}
+ .drawer .foot{padding:10px 18px;border-top:1px solid var(--line);font-size:12px;color:var(--mut)}
+ .scrim{position:fixed;inset:0;background:rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .25s;z-index:40}
+ .scrim.open{opacity:1;pointer-events:auto}
+
+ h2.sec{font-size:22px;margin:52px 0 12px}
+ .cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+ .cmp .box{border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+ .cmp .x{color:var(--bad);font-weight:700;margin:0 0 6px} .cmp .v{color:var(--ok);font-weight:700;margin:0}
+ .cmp .x::before{content:"✗  "} .cmp .v::before{content:"✓  "}
+ .cmp span{font-weight:400;color:var(--fg)}
+ ol.ask{padding-left:22px;font-size:16px;max-width:85ch} ol.ask li{margin:0 0 8px}
+ details{border:1px solid var(--line);border-radius:12px;padding:10px 16px;margin-top:40px}
+ summary{cursor:pointer;font-weight:700}
+ table.flat{border-collapse:collapse;width:100%;margin-top:10px}
+ table.flat td,table.flat th{text-align:left;vertical-align:top;padding:6px 8px;border-top:1px solid var(--line);font-size:13px}
+ table.flat th{font-size:11px;text-transform:uppercase;color:var(--mut);border-top:none}
+ table.flat td.k{font:700 12px ui-monospace,Menlo,monospace}
+ @media (max-width:1000px){.player{grid-template-columns:1fr}.tabs{grid-template-columns:1fr 1fr !important}}
+ @media print{.drawer,.scrim,.nav,.bar{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title"></h1>
+  <p class="lede" id="question"></p>
+  <div class="bar"><div class="seg" id="mode"></div><span class="hint" id="hint"></span></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="player">
+    <section class="panel">
+      <header><h2 id="flowTitle"></h2><span class="hint" id="flowSub"></span></header>
+      <div class="steps" id="steps"></div>
+      <div class="screen" id="screen"></div>
+      <div class="nav"><button id="prev">← Back</button><span class="hint" id="stepCount"></span><span><button id="play">▶ Play</button> <button id="next" class="primary">Next →</button></span></div>
+    </section>
+    <section class="panel">
+      <header><h2>What the systems do at this step</h2><span class="hint">click a call for request, response and why</span></header>
+      <div class="net" id="net"></div>
+      <div class="tally" id="tally"></div>
+      <div class="log" id="log"></div>
+    </section>
+  </div>
+  <div id="sections"></div>
+  <details><summary>Every call, flat (Ctrl-F, print)</summary><div id="flat"></div></details>
+</div>
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <header><span class="m" id="dMethod"></span><h3 id="dPath"></h3><button id="dClose" aria-label="Close">×</button></header>
+  <div class="body" id="dBody"></div>
+  <div class="foot">Esc closes · ← → still step while open</div>
+</aside>
+<script>
+/* =========================================================================
+   DATA — the only part you edit. Contract: DATA.md next to this file.
+   The dataset below is a demo so the page renders out of the box. Replace it.
+   ========================================================================= */
+const DATA = {
+  title: 'Sign in with a magic link',
+  question: 'Which systems does one sign-in touch today, and what changes if the browser talks to auth-service directly?',
+  client: { label: 'Browser', sub: 'web app' },
+  headersNote: 'Every request carries <code>Authorization: Bearer &lt;anon token&gt;</code>. The ingress adds <code>x-request-id</code>.',
+  modes: [ { id: 'today', label: 'Today' }, { id: 'proposed', label: 'Proposed' } ],
+  lanes: [ { id: 'bff', label: 'web-bff', sub: 'Node' }, { id: 'auth', label: 'auth-service', sub: 'Go' }, { id: 'mail', label: 'mail-service' } ],
+  calls: {
+    requestLink: { lane: 'bff', method: 'POST', path: '/login/magic-link', why: 'Asks for a one-time link for the typed e-mail.',
+      body: '{ "email": "ada@example.com" }', params: [ { name: 'locale', required: false, from: 'browser language' } ],
+      response: [ { group: 'Always', key: 'requestId', why: 'Printed on the “check your inbox” screen so support can trace it.' } ], src: 'web/src/login/api.ts:41' },
+    createLink: { lane: 'auth', from: 'bff', method: 'POST', path: '/magic-links', why: 'Mints the token and its 15-minute expiry.',
+      response: [ { group: 'Always', key: 'token', why: 'Never returned to the browser. Goes into the e-mail only.' }, { group: 'Always', key: 'expiresAt', why: 'Printed in the e-mail footer.' } ] },
+    sendMail: { lane: 'mail', from: 'auth', method: 'POST', path: '/send', kind: 'warn', why: 'Delivers the e-mail with the link.',
+      note: 'Synchronous today: a slow mail provider blocks the sign-in response.', response: [] },
+    callback: { lane: 'bff', method: 'GET', path: '/login/callback', why: 'Exchanges the token for a session cookie.',
+      params: [ { name: 'token', required: true, from: 'the link in the e-mail' } ],
+      response: [ { group: 'Always', key: 'redirectTo', why: 'Where the browser lands after sign-in.' } ] },
+    session: { lane: 'auth', from: 'bff', method: 'POST', path: '/sessions', why: 'Validates the token once and creates the session.',
+      response: [ { group: 'Always', key: 'sessionId', why: 'Set as an httpOnly cookie by web-bff.' },
+                  { group: 'Only with ?includeProfile', key: 'profile.displayName', why: 'Greeting on the landing page.', present: false } ] },
+    requestLinkDirect: { lane: 'auth', method: 'POST', path: '/magic-links', why: 'Browser asks auth-service directly. The BFF hop is gone.',
+      body: '{ "email": "ada@example.com" }', response: [ { group: 'Always', key: 'requestId', why: 'Printed on the “check your inbox” screen.' } ] },
+    queueMail: { lane: 'mail', from: 'auth', method: 'EMIT', path: 'magic-link.requested', why: 'Event on the bus. mail-service sends when it can.', response: [] },
+    sessionDirect: { lane: 'auth', method: 'POST', path: '/sessions', why: 'Validates the token and sets the cookie itself.',
+      params: [ { name: 'token', required: true, from: 'the link in the e-mail' } ],
+      response: [ { group: 'Always', key: 'sessionId', why: 'httpOnly cookie, set by auth-service.' } ] }
+  },
+  flows: [
+    { id: 'web', entry: 'Web app', label: 'Sign in from the login page', sub: 'Happy path, e-mail typed by hand.',
+      host: { title: 'Login', crumb: 'example.com/login', lines: [ '# Sign in', '| ada@example.com', '> Send me a link', '~ or continue with Google' ] },
+      steps: {
+        today: [
+          { title: 'Type e-mail', screen: { kind: 'page' }, calls: [] },
+          { title: 'Request link', where: 'modal', screen: { kind: 'modal', title: 'Check your inbox', lines: [ 'We sent a link to ada@example.com', '~ request id 7f3a…', '> Open mail app' ] }, calls: [ 'requestLink', 'createLink', 'sendMail' ] },
+          { title: 'Click the link', where: 'from the e-mail', screen: { kind: 'toast', title: '✓ Signed in as Ada' }, calls: [ 'callback', 'session' ] }
+        ],
+        proposed: [
+          { title: 'Type e-mail', screen: { kind: 'page' }, calls: [] },
+          { title: 'Request link', where: 'modal', screen: { kind: 'modal', title: 'Check your inbox', lines: [ 'We sent a link to ada@example.com', '> Open mail app' ] }, calls: [ 'requestLinkDirect', 'queueMail' ],
+            note: 'Mail goes async: the response no longer waits for the provider.' },
+          { title: 'Click the link', where: 'from the e-mail', screen: { kind: 'toast', title: '✓ Signed in as Ada' }, calls: [ 'sessionDirect' ] }
+        ]
+      } },
+    { id: 'mobile', entry: 'Mobile', label: 'Open the link on a phone', sub: 'Branches on whether the app is installed.',
+      host: { title: 'Mail', crumb: 'inbox', lines: [ '# Your sign-in link', '> Sign in to Example', '~ expires in 15 minutes' ] },
+      steps: {
+        today: [
+          { title: 'Tap the link', screen: { kind: 'page' }, calls: [],
+            fork: { label: 'App installed?', options: [ { id: 'app', label: 'Yes, opens the app' }, { id: 'web', label: 'No, opens the browser' } ] } },
+          { title: 'Land in the browser', screen: { kind: 'toast', title: '✓ Signed in as Ada' }, calls: [ 'callback', 'session' ],
+            by: { app: { title: 'Land in the app', calls: [ 'sessionDirect' ], screen: { kind: 'toast', title: '✓ Signed in (app)' } } } }
+        ],
+        proposed: [
+          { title: 'Tap the link', screen: { kind: 'page' }, calls: [] },
+          { title: 'Land', screen: { kind: 'toast', title: '✓ Signed in as Ada' }, calls: [ 'sessionDirect' ] }
+        ]
+      } }
+  ],
+  sections: [
+    { title: 'Your notes vs. the code', html: '<div class="cmp"><div class="box"><p class="x">Note: “mail is already async” <span>— <code>auth/magic_links.go:88</code> awaits the provider before replying.</span></p><p class="v">Code: the sign-in response waits for the mail provider.</p></div></div>' },
+    { title: 'Ask the auth team', html: '<ol class="ask"><li>Can <code>POST /sessions</code> set the cookie itself, or must a BFF stay in front for the cookie domain?</li><li>Is the event bus reachable from mail-service today?</li></ol>' }
+  ]
+};
+
+/* =========================================================================
+   RENDERER — fix bugs here for everyone, in the template, not in your copy.
+   ========================================================================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const MODES = DATA.modes, LANES = DATA.lanes, FLOWS = DATA.flows, CALLS = DATA.calls;
+const laneIx = id => LANES.findIndex(l => l.id === id);
+const lane = id => LANES[laneIx(id)];
+const laneStyle = i => `--c:var(--l${((i % 5) + 5) % 5});--cbg:var(--l${((i % 5) + 5) % 5}-bg)`;
+const call = id => { const c = CALLS[id]; if (!c) throw new Error('DATA.calls has no "' + id + '"'); return Object.assign({ id }, c); };
+const fullPath = c => (lane(c.lane)?.label || c.lane) + (/^\//.test(c.path) ? '' : ' ') + c.path;
+
+let mode = MODES[0].id, fi = 0, si = 0, branch = null, timer = null;
+const flow = () => FLOWS[fi];
+const modeLabel = () => MODES.find(m => m.id === mode)?.label || mode;
+const rawSteps = (f = flow(), m = mode) => f.steps[m] || [];
+const forkOf = (f = flow(), m = mode) => rawSteps(f, m).find(s => s.fork)?.fork || null;
+const defaultBranch = (f, m) => forkOf(f, m)?.options[0]?.id || null;
+const effWith = (s, b) => Object.assign({}, s, (s.by && b && s.by[b]) || {});
+const steps = () => rawSteps().map(s => effWith(s, branch));
+function ensureBranch() { const fk = forkOf(); if (!fk) { branch = null; return; } if (!fk.options.some(o => o.id === branch)) branch = fk.options[0].id; }
+function callsOf(f, m, b) { return rawSteps(f, m).flatMap(s => (effWith(s, b).calls || []).map(call)); }
+function totals(f, m, b) { const cs = callsOf(f, m, b); return { calls: cs.length, systems: new Set(cs.map(c => c.lane)).size, warn: cs.filter(c => c.kind === 'warn').length }; }
+const isWrite = c => c.kind === 'write' || /^(POST|PUT|PATCH|DELETE)$/i.test(c.method);
+
+function renderMode() {
+  $('#mode').innerHTML = MODES.map((m, i) => `<button data-m="${esc(m.id)}" class="${m.id === mode ? 'on' : ''} ${i ? 'alt' : ''}">${esc(m.label)}</button>`).join('');
+  document.querySelectorAll('#mode button').forEach(b => b.onclick = () => setMode(b.dataset.m));
+}
+
+function renderTabs() {
+  $('#tabs').style.gridTemplateColumns = `repeat(${Math.min(FLOWS.length, 6)},minmax(0,1fr))`;
+  $('#tabs').innerHTML = FLOWS.map((f, i) => {
+    const pills = MODES.map(m => {
+      if (!f.steps[m.id]) return `<span class="pillc dim">${esc(m.label)}: n/a</span>`;
+      const t = totals(f, m.id, i === fi ? branch : defaultBranch(f, m.id));
+      return `<span class="pillc ${m.id === mode ? 'on' : ''} ${t.warn ? 'bad' : ''}" title="${esc(m.label)}">${t.calls} call${t.calls === 1 ? '' : 's'} · ${t.systems} system${t.systems === 1 ? '' : 's'}</span>`;
+    }).join('<span class="arr">→</span>');
+    return `<button class="tab ${i === fi ? 'on' : ''}" data-i="${i}"><span class="e">${i + 1} · ${esc(f.entry || '')}</span><span class="t">${esc(f.label)}</span><span class="cmp">${pills}</span></button>`;
+  }).join('');
+  document.querySelectorAll('.tab').forEach(b => b.onclick = () => { fi = +b.dataset.i; si = 0; ensureBranch(); render(); });
+}
+
+function dsl(lines) {
+  return (lines || []).map(l => {
+    if (l === '---') return '<div class="ln-hr"></div>';
+    const m = /^(\[x\]|\[ \]|\(\*\)|\( \)|\(~\)|>|~|!|#|\|)\s*(.*)$/.exec(l);
+    if (!m) return `<div class="ln-row">${esc(l)}</div>`;
+    const x = esc(m[2]);
+    switch (m[1]) {
+      case '[x]': return `<div class="ln-row"><i class="ck"></i>${x}</div>`;
+      case '[ ]': return `<div class="ln-row"><i></i>${x}</div>`;
+      case '(*)': return `<div class="ln-row sel"><i class="rd ck"></i>${x}</div>`;
+      case '( )': return `<div class="ln-row"><i class="rd"></i>${x}</div>`;
+      case '(~)': return `<div class="ln-row dis"><i class="rd"></i>${x}</div>`;
+      case '>': return `<div><span class="btn pulse">${x}</span></div>`;
+      case '~': return `<div class="ln-mut">${x}</div>`;
+      case '!': return `<div class="ln-bad">${x}</div>`;
+      case '#': return `<div class="ln-h">${x}</div>`;
+      case '|': return `<div class="ln-in">${x}</div>`;
+    }
+  }).join('');
+}
+function hostHtml(h, dim) {
+  if (!h) return '';
+  return `<div class="host ${dim ? 'dim' : ''}"><div class="hostbar"><b>${esc(h.title || '')}</b><span>${esc(h.crumb || '')}</span></div><div class="hostbody">${dsl(h.lines)}</div></div>`;
+}
+function screenHtml(step) {
+  const sc = typeof step.screen === 'string' ? { kind: 'card', title: step.screen } : (step.screen || { kind: 'page' });
+  const host = sc.host || flow().host;
+  if (sc.html) return `<div class="mock">${sc.html}</div>`;
+  if (sc.kind === 'page') return `<div class="mock">${hostHtml(host, false) || `<div class="card"><h4>${esc(sc.title || step.title)}</h4>${dsl(sc.lines)}</div>`}</div>`;
+  const inner = sc.kind === 'toast'
+    ? `<div class="toast">${esc(sc.title || step.title)}</div>`
+    : `<div class="${sc.kind === 'modal' ? 'modal' : 'card'}"><h4>${esc(sc.title || step.title)}</h4>${dsl(sc.lines)}${sc.cta ? `<div class="mfoot"><span class="btn">${esc(sc.cta)}</span></div>` : ''}</div>`;
+  return `<div class="mock">${hostHtml(host, true)}${inner}</div>`;
+}
+
+function renderScreen() {
+  const f = flow(), st = steps(), step = st[si];
+  $('#flowTitle').textContent = `${fi + 1} · ${f.entry ? f.entry + ' → ' : ''}${f.label}`;
+  $('#flowSub').textContent = f.sub || '';
+  if (!step) {
+    $('#steps').innerHTML = ''; $('#screen').innerHTML = `<div class="empty">This flow has no steps in “${esc(modeLabel())}”.</div>`;
+    $('#prev').disabled = $('#next').disabled = true; $('#stepCount').textContent = ''; return;
+  }
+  $('#steps').innerHTML = st.map((s, i) => `<button class="stepbtn ${i === si ? 'on' : i < si ? 'done' : ''}" data-i="${i}"><span class="d">${i + 1}</span>${esc(s.title)}</button>`).join('');
+  document.querySelectorAll('.stepbtn').forEach(b => b.onclick = () => { si = +b.dataset.i; render(); });
+  const fk = forkOf();
+  const forkHtml = fk ? `<div class="fork"><span>${esc(fk.label)}</span>${fk.options.map(o => `<button data-b="${esc(o.id)}" class="${o.id === branch ? 'on' : ''}">${esc(o.label)}</button>`).join('')}</div>` : '';
+  $('#screen').innerHTML = `<div class="cap"><h3>${si + 1}. ${esc(step.title)}</h3><span class="ui">${esc(step.where || '')}</span></div>${forkHtml}${step.note ? `<div class="note">${step.note}</div>` : ''}${screenHtml(step)}`;
+  document.querySelectorAll('.fork button').forEach(b => b.onclick = () => { branch = b.dataset.b; render(); });
+  $('#prev').disabled = si === 0; $('#next').disabled = si === st.length - 1;
+  $('#stepCount').textContent = `step ${si + 1} of ${st.length}`;
+}
+
+function renderNet() {
+  const st = steps(), step = st[si] || { calls: [] };
+  const cs = (step.calls || []).map(call);
+  const lanes = LANES.map((l, i) => {
+    const list = cs.filter(c => c.lane === l.id), active = list.length || cs.some(c => c.from === l.id);
+    return `<div class="lane ${active ? '' : 'idle'}" data-lane="${esc(l.id)}" style="${laneStyle(i)}"><div class="ln"><span class="dot"></span>${esc(l.label)}${l.sub ? `<small>${esc(l.sub)}</small>` : ''}<span class="cnt">${list.length ? list.length + ' call' + (list.length > 1 ? 's' : '') : '—'}</span></div>
+      ${list.map((c, j) => `<button class="req ${c.kind === 'warn' ? 'warn' : isWrite(c) ? 'write' : ''}" data-c="${esc(c.id)}" style="animation-delay:${j * 90}ms"><span class="m">${esc(c.method)}</span><span class="p">${esc(c.path)}</span>${c.from ? `<span class="from">← ${esc(lane(c.from)?.label || c.from)}</span>` : ''}</button>`).join('')}
+    </div>`;
+  }).join('');
+  $('#net').innerHTML = `<svg id="wires"></svg><div class="netgrid"><div class="client">${esc(DATA.client?.label || 'Client')}<small>${esc(DATA.client?.sub || '')}</small></div><div class="lanes">${lanes}</div></div>`;
+  document.querySelectorAll('.req').forEach(b => b.onclick = () => openDrawer(call(b.dataset.c)));
+  requestAnimationFrame(drawWires);
+
+  const seen = st.slice(0, si + 1).flatMap(s => (s.calls || []).map(call));
+  const systems = new Set(seen.map(c => c.lane)).size, warn = seen.filter(c => c.kind === 'warn').length;
+  $('#tally').innerHTML = `<div class="tl"><b>${seen.length}</b><span>calls so far</span></div><div class="tl ${systems >= 3 ? 'bad' : ''}"><b>${systems}</b><span>systems so far</span></div><div class="tl ${warn ? 'bad' : ''}"><b>${seen.filter(isWrite).length}</b><span>writes${warn ? ` · ${warn} flagged` : ''}</span></div>`;
+
+  $('#log').innerHTML = `<h4>Call log for this flow</h4>` + st.map((s, i) => {
+    const L = (s.calls || []).map(call);
+    return L.length
+      ? L.map(c => `<div class="l ${i === si ? 'cur' : ''}"><span class="dot" style="${laneStyle(laneIx(c.lane))}"></span><span class="m">${esc(c.method)} ${esc(fullPath(c))}</span><span>· step ${i + 1}</span></div>`).join('')
+      : `<div class="l ${i === si ? 'cur' : ''}"><span class="dot" style="--c:var(--line)"></span><span>no call · step ${i + 1}</span></div>`;
+  }).join('');
+}
+
+function drawWires(animate = true) {
+  const svg = $('#wires'); if (!svg) return;
+  const step = steps()[si]; if (!step) { svg.innerHTML = ''; return; }
+  const net = $('#net').getBoundingClientRect(), cl = $('.client').getBoundingClientRect();
+  const cs = (step.calls || []).map(call), seen = new Set(); let d = '';
+  cs.forEach(c => {
+    const key = (c.from || '@') + '>' + c.lane; if (seen.has(key)) return; seen.add(key);
+    const to = document.querySelector(`.lane[data-lane="${c.lane}"]`); if (!to) return;
+    const tr = to.getBoundingClientRect();
+    const warn = cs.filter(x => x.lane === c.lane && (x.from || '@') === (c.from || '@')).every(x => x.kind === 'warn');
+    const stroke = warn ? 'var(--bad)' : (getComputedStyle(to).getPropertyValue('--c') || 'var(--fg)'), dash = warn ? 'stroke-dasharray="6 4"' : '';
+    const y2 = tr.top - net.top + tr.height / 2;
+    if (!c.from) {
+      const x1 = cl.right - net.left, y1 = cl.top - net.top + cl.height / 2, x2 = tr.left - net.left;
+      d += `<path class="${animate ? 'wire' : ''}" d="M${x1},${y1} C${x1 + 40},${y1} ${x2 - 40},${y2} ${x2},${y2}" fill="none" stroke="${stroke}" stroke-width="2.5" ${dash}/>`;
+    } else {
+      const fr = document.querySelector(`.lane[data-lane="${c.from}"]`); if (!fr) return;
+      const fb = fr.getBoundingClientRect(), x = fb.right - net.left, y1 = fb.top - net.top + fb.height / 2;
+      d += `<path class="${animate ? 'wire' : ''}" d="M${x},${y1} C${x + 40},${y1} ${x + 40},${y2} ${x + 2},${y2}" fill="none" stroke="${stroke}" stroke-width="2.5" ${dash} marker-end="url(#arr)"/>`;
+    }
+  });
+  svg.innerHTML = `<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--mut)"/></marker></defs>` + d;
+}
+
+function openDrawer(c) {
+  const L = lane(c.lane);
+  $('#dMethod').textContent = c.method; $('#dPath').textContent = fullPath(c);
+  let b = `<div class="reqbox"><div class="grp">Request${c.from ? `<span class="st">from ${esc(lane(c.from)?.label || c.from)}</span>` : ''}</div><div class="url">${esc(c.method)} ${esc(fullPath(c))}</div>`;
+  if (c.params?.length) b += `<table class="pt"><thead><tr><th>param</th><th></th><th>comes from</th></tr></thead><tbody>${c.params.map(p => `<tr><td class="k">${esc(p.name)}</td><td>${p.required ? '<b>required</b>' : 'optional'}</td><td>${esc(p.from || '')}</td></tr>`).join('')}</tbody></table>`;
+  if (c.body) b += `<div class="grp">Body</div><pre>${esc(c.body)}</pre>`;
+  if (c.headers || DATA.headersNote) b += `<div class="hdr">${c.headers || DATA.headersNote}</div>`;
+  b += `</div><div class="whybox ${c.kind === 'warn' ? 'warn' : ''}"><b>Why this call:</b> ${c.why || '<em>missing. Every call needs a why.</em>'}</div>`;
+  if (c.note) b += `<div class="note">${c.note}</div>`;
+  const groups = []; (c.response || []).forEach(r => { const g = r.group || 'Response'; if (!groups.includes(g)) groups.push(g); });
+  groups.forEach(g => {
+    const rows = c.response.filter(r => (r.group || 'Response') === g), absent = rows.every(r => r.present === false);
+    b += `<div class="grp ${absent ? 'absent' : ''}">${esc(g)}${absent ? '<span class="st">not in this call</span>' : ''}</div>` +
+      rows.map(r => `<div class="fld ${r.present === false ? 'absent' : ''}"><div class="k">${esc(r.key)}${r.type ? `<small>${esc(r.type)}</small>` : ''}</div><div class="v">${r.why || '<em>never read</em>'}</div></div>`).join('');
+  });
+  if (c.response && !c.response.length) b += `<div class="grp absent">Response<span class="st">nothing read from it</span></div>`;
+  if (c.src) b += `<div class="src">source: <code>${esc(c.src)}</code></div>`;
+  $('#dBody').innerHTML = b;
+  $('#drawer').classList.add('open'); $('#scrim').classList.add('open'); $('#drawer').setAttribute('aria-hidden', 'false');
+}
+function closeDrawer() { $('#drawer').classList.remove('open'); $('#scrim').classList.remove('open'); $('#drawer').setAttribute('aria-hidden', 'true'); }
+
+function renderSections() {
+  $('#sections').innerHTML = (DATA.sections || []).map(s => `<h2 class="sec">${esc(s.title)}</h2>${s.html || ''}`).join('');
+  let rows = '';
+  FLOWS.forEach(f => MODES.forEach(m => {
+    const opts = forkOf(f, m.id)?.options || [ { id: null, label: '' } ];
+    opts.forEach(o => rawSteps(f, m.id).forEach((s, i) => {
+      const e = effWith(s, o.id);
+      (e.calls || []).forEach(id => { const c = call(id); rows += `<tr><td>${esc(f.label)}</td><td>${esc(m.label)}</td><td>${esc(o.label)}</td><td>${i + 1}. ${esc(e.title)}</td><td class="k">${esc(c.method)} ${esc(fullPath(c))}</td><td>${c.why || ''}</td></tr>`; });
+    }));
+  }));
+  $('#flat').innerHTML = `<table class="flat"><thead><tr><th>Flow</th><th>Mode</th><th>Branch</th><th>Step</th><th>Call</th><th>Why</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function writeHash() { const h = `#f=${fi + 1}&s=${si + 1}&m=${mode}${branch ? `&b=${branch}` : ''}`; if (location.hash !== h) history.replaceState(null, '', h); }
+function readHash() {
+  const q = new URLSearchParams(location.hash.slice(1)), f = +q.get('f'), s = +q.get('s'), m = q.get('m');
+  if (f >= 1 && f <= FLOWS.length) fi = f - 1;
+  if (MODES.some(x => x.id === m)) mode = m;
+  branch = q.get('b'); ensureBranch();
+  if (s >= 1) si = Math.min(s - 1, Math.max(0, steps().length - 1));
+  return q;
+}
+function render() { renderMode(); renderTabs(); renderScreen(); renderNet(); writeHash(); }
+function setMode(m) { mode = m; ensureBranch(); si = Math.min(si, Math.max(0, steps().length - 1)); render(); }
+function stopPlay() { if (timer) { clearInterval(timer); timer = null; } $('#play').textContent = '▶ Play'; }
+
+$('#prev').onclick = () => { if (si > 0) { si--; render(); } };
+$('#next').onclick = () => { if (si < steps().length - 1) { si++; render(); } };
+$('#dClose').onclick = closeDrawer; $('#scrim').onclick = closeDrawer;
+$('#play').onclick = () => {
+  if (timer) return stopPlay();
+  if (si >= steps().length - 1) si = 0; render(); $('#play').textContent = '■ Stop';
+  timer = setInterval(() => { if (si < steps().length - 1) { si++; render(); } else stopPlay(); }, 1700);
+};
+['#tabs', '#prev', '#next', '#mode'].forEach(s => $(s).addEventListener('click', stopPlay, true));
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') return closeDrawer();
+  if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if (e.key === 'ArrowRight') $('#next').click();
+  if (e.key === 'ArrowLeft') $('#prev').click();
+  if (e.key.toLowerCase() === 't') setMode(MODES[(MODES.findIndex(x => x.id === mode) + 1) % MODES.length].id);
+  if (/^[1-9]$/.test(e.key) && +e.key <= FLOWS.length) { fi = +e.key - 1; si = 0; ensureBranch(); render(); }
+});
+window.addEventListener('resize', () => drawWires(false));
+
+document.title = DATA.title || 'Flow walkthrough';
+$('#title').textContent = DATA.title || ''; $('#question').textContent = DATA.question || '';
+$('#hint').innerHTML = `<kbd>←</kbd><kbd>→</kbd> step · <kbd>T</kbd> mode · <kbd>1</kbd>–<kbd>${FLOWS.length}</kbd> flow · <kbd>Esc</kbd> close`;
+renderSections(); const q0 = readHash(); render();
+if (q0.get('d') !== null) { const ids = steps()[si]?.calls || []; if (ids[+q0.get('d') || 0]) openDrawer(call(ids[+q0.get('d') || 0])); }
+</script>
+</body>
+</html>
