@@ -1,5 +1,5 @@
 ---
-name: wait-what-recruiter
+name: wait-what
 description: "Stop. That last message did not land: re-pitch it in plain language."
 disable-model-invocation: true
 ---
